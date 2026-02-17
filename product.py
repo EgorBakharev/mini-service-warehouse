@@ -2,12 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-
-class MyError(Exception):
-    def __init__(self, code, message="Возникла ошибка"):
-        self.code = code
-        self.message = message
-        super().__init__(self.message)
+from er import MyError
 
 
 # Модель которую заполняют
@@ -26,7 +21,7 @@ class ProductUpdate(BaseModel):
 
 
 class Product(BaseModel):
-    id: int
+    pid: int
     sku: str
     name: str
     description: str = "Описание товара"
@@ -36,7 +31,7 @@ class Product(BaseModel):
     @staticmethod
     def get_product_by_id(pid: int):
         for product in products_list:
-            if product.id == pid:
+            if product.pid == pid:
                 return product
         raise MyError(code=404, message='Товара нет')
 
@@ -102,7 +97,7 @@ def random_products():
 
     for i in range(1, 3):
         product = Product(
-            id=i,  # задаём уникальный id
+            pid=i,  # задаём уникальный id
             name=f"Товар {i}",
             sku=f"SKU-{i:03d}",  # например, SKU-001
             description=f"Подробное описание товара номер {i}",
@@ -114,5 +109,5 @@ def random_products():
 
 
 products_list = random_products()
-print(products_list)
+# print(products_list)
 
