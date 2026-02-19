@@ -24,7 +24,7 @@ class Product(BaseModel):
     pid: int
     sku: str
     name: str
-    description: str = "Описание товара"
+    description: Optional[str] = None
     price: float = Field(0.0, ge=0.0)
     created_at: datetime = Field(default_factory=datetime.now)
 
@@ -72,6 +72,7 @@ class Product(BaseModel):
         update_data = product_update.model_dump(exclude_unset=True)
 
         for field, value in update_data.items():
+            print(field, value)
             setattr(existing_product, field, value)
 
         return existing_product
@@ -109,5 +110,5 @@ def random_products():
 
 
 products_list = random_products()
-# print(products_list)
 
+print(Product.product_change(pid=1, product_update=ProductUpdate(name="gggg")))
