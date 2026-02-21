@@ -1,33 +1,13 @@
 from datetime import datetime
-from enum import Enum
-from typing import Optional
 
-from pydantic import BaseModel, Field
-
-from product import Product
 from er import MyError
-
-
-class MoveType(Enum):
-    IN = "IN"
-    OUT = "OUT"
-
-
-class StockResponse(BaseModel):
-    product_id: int
-    qty: int
-
-
-class MovementApp(BaseModel):
-    product_id: int = 1
-    type: MoveType
-    qty: int = Field(0, ge=0)
-    comment: Optional[str] = None
+from product import Product
+from scheme_stock import MoveType
 
 
 class Movement:
-    def __init__(self, product_id: int, qty: int, type: MoveType, comment: str = ''):
-        self.pid: int
+    def __init__(self, product_id: int, qty: int, type: MoveType, comment: str):
+        self.pid = 0
         self.product = Product.get_product_by_id(product_id)
         self.type = type
         self.qty = qty
@@ -36,37 +16,31 @@ class Movement:
 
 
 class Warehouse:
-    # pid: int
-    # product_id: Product
-    # type: MoveType
-    # qty: int = Field(0, ge=0)
-    # comment: Optional[str] = None
-    # created_at: datetime = Field(default_factory=datetime.now)
-    # move_list: []
-    def __init__(self, wid: int):
-        self.wid = wid
-        self.created_at: datetime = Field(default_factory=datetime.now)
-        self.movements = []
-
+    movements = []
 
     @staticmethod
     def get_product(product_id):
         return Product.get_product_by_id(product_id)
 
-    def add_move(self, move: Movement):
+    @classmethod
+    def add_move(cls, move: Movement):
 
         if move.qty <= 0:
-            raise MyError(code=422, message="Движение не может быть отрицательным")
+            raise MyError(code=422, message="Движение не может быть отрицательным или нулевым")
 
-        qty_now = self.product_qty(move.product.pid)
+        qty_now = cls.product_qty(move.product.pid)
         if qty_now < move.qty and move.type == MoveType.OUT:
             raise MyError(400, f"Недостаточно товара на складе. Количество {qty_now}")
-        self.movements.append(move)
 
-    def product_qty(self, product_id: int):
+        move.pid = len(cls.movements) + 1
+        cls.movements.append(move)
+
+    @classmethod
+    def product_qty(cls, product_id: int):
         product = Product.get_product_by_id(product_id)
+
         qty = 0
-        for move in self.movements:
+        for move in cls.movements:
             if move.product == product:
                 if move.type == MoveType.IN:
                     qty = qty + move.qty
@@ -75,5 +49,17 @@ class Warehouse:
 
         return qty
 
-    def stock_list(self):
-        return self.movements
+    @classmethod
+    def stock_movements(cls):
+        return cls.movements
+
+    @classmethod
+    def stock_remains(cls):
+        remains = []
+
+        numbers_id = list(set(obj.product.pid for obj in cls.movements))
+        for num in numbers_id:
+            qty = cls.product_qty(product_id=num)
+            remains.append([num, qty])
+
+        return remains

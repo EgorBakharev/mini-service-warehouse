@@ -1,32 +1,18 @@
-from datetime import datetime, timedelta
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import List
 
 from er import MyError
+from scheme_product import ProductApp, ProductUpdate
 
 
-# Модель которую заполняют
-class ProductApp(BaseModel):
-    sku: str
-    name: str
-    description: Optional[str] = None
-    price: float = Field(0.0, ge=0.0)
-
-
-# Модель для частичного обновления (все поля необязательные)
-class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    price: Optional[float] = None
-
-
-class Product(BaseModel):
-    pid: int
-    sku: str
-    name: str
-    description: Optional[str] = None
-    price: float = Field(0.0, ge=0.0)
-    created_at: datetime = Field(default_factory=datetime.now)
+class Product:
+    def __init__(self, sku: str, name: str, description: str, price: float, pid: int = 0):
+        self.pid = pid
+        self.sku = sku
+        self.name = name
+        self.description = description
+        self.price = price
+        self.created_at: datetime = datetime.now()
 
     @staticmethod
     def get_product_by_id(pid: int):
@@ -42,8 +28,8 @@ class Product(BaseModel):
             if app.sku == prod.sku:
                 raise MyError(code=400, message=f"{app.sku} уже существует")
 
-        product = cls(
-            id=len(products_list) + 1,
+        product = Product(
+            pid=len(products_list) + 1,
             name=app.name,
             sku=app.sku,
             description=app.description,
@@ -65,7 +51,7 @@ class Product(BaseModel):
     @classmethod
     def product_change(cls, pid: int, product_update: ProductUpdate):
 
-        if isinstance(product_update.price,  (int, float)) and product_update.price < 0:
+        if isinstance(product_update.price, (int, float)) and product_update.price < 0:
             raise MyError(code=400, message='Цена меньше 0.0')
 
         existing_product = cls.get_product_by_id(pid=pid)
@@ -94,21 +80,18 @@ class Product(BaseModel):
 
 def random_products():
     products: List[Product] = []
-    base_time = datetime.now()
 
-    for i in range(1, 3):
+    for i in range(1, 4):
         product = Product(
-            pid=i,  # задаём уникальный id
+            pid=i,
             name=f"Товар {i}",
             sku=f"SKU-{i:03d}",  # например, SKU-001
             description=f"Подробное описание товара номер {i}",
             price=round(100.0 + i * 15.5, 2),  # разные цены
-            created_at=base_time - timedelta(days=i)  # разные даты
+
         )
         products.append(product)
     return products
 
 
 products_list = random_products()
-
-print(Product.product_change(pid=1, product_update=ProductUpdate(name="gggg")))
