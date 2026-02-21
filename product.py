@@ -58,7 +58,6 @@ class Product:
         update_data = product_update.model_dump(exclude_unset=True)
 
         for field, value in update_data.items():
-            print(field, value)
             setattr(existing_product, field, value)
 
         return existing_product

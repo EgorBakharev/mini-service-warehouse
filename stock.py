@@ -16,31 +16,32 @@ class Movement:
 
 
 class Warehouse:
-    movements = []
+    def __init__(self, name):
+        self.name = name
+        self.movements = []
 
     @staticmethod
     def get_product(product_id):
         return Product.get_product_by_id(product_id)
 
-    @classmethod
-    def add_move(cls, move: Movement):
+    def add_move(self, move: Movement):
 
         if move.qty <= 0:
             raise MyError(code=422, message="Движение не может быть отрицательным или нулевым")
 
-        qty_now = cls.product_qty(move.product.pid)
+        qty_now = self.product_qty(move.product.pid)
+
         if qty_now < move.qty and move.type == MoveType.OUT:
             raise MyError(400, f"Недостаточно товара на складе. Количество {qty_now}")
 
-        move.pid = len(cls.movements) + 1
-        cls.movements.append(move)
+        move.pid = len(self.movements) + 1
+        self.movements.append(move)
 
-    @classmethod
-    def product_qty(cls, product_id: int):
+    def product_qty(self, product_id: int):
         product = Product.get_product_by_id(product_id)
 
         qty = 0
-        for move in cls.movements:
+        for move in self.movements:
             if move.product == product:
                 if move.type == MoveType.IN:
                     qty = qty + move.qty
@@ -49,17 +50,16 @@ class Warehouse:
 
         return qty
 
-    @classmethod
-    def stock_movements(cls):
-        return cls.movements
+    def stock_movements(self):
+        return self.movements
 
-    @classmethod
-    def stock_remains(cls):
+    def stock_remains(self):
         remains = []
 
-        numbers_id = list(set(obj.product.pid for obj in cls.movements))
+        numbers_id = list(set(obj.product.pid for obj in self.movements))
         for num in numbers_id:
-            qty = cls.product_qty(product_id=num)
-            remains.append([num, qty])
+            qty = self.product_qty(product_id=num)
+            if qty > 0:
+                remains.append([num, qty])
 
         return remains

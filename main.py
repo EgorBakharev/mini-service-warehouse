@@ -8,6 +8,7 @@ from product import Product
 from stock import Warehouse, Movement
 
 app = FastAPI()
+wr_h1 = Warehouse(name="Главный склад")
 
 
 @app.post("/products")
@@ -53,23 +54,19 @@ def product_delete(pid: int):
 
 @app.get('/stock/remains')
 def stock_remains():
-    result = [StockResponse(product_id=elem[0], qty=elem[1]) for elem in Warehouse.stock_remains()]
+    result = [StockResponse(product_id=elem[0], qty=elem[1]) for elem in wr_h1.stock_remains()]
     return result
 
 
 @app.get("/stock/movements")
 def stock_movements():
-    try:
-        return Warehouse.movements
-
-    except MyError as my_error:
-        raise HTTPException(status_code=my_error.code, detail=my_error.message)
+    return wr_h1.stock_movements()
 
 
 @app.post("/stock/movement", status_code=status.HTTP_204_NO_CONTENT)
 def stock_movement(move: MovementApp):
     try:
-        return Warehouse.add_move(move=Movement(move.product_id, move.qty, move.type, move.comment))
+        return wr_h1.add_move(move=Movement(move.product_id, move.qty, move.type, move.comment))
 
     except MyError as my_error:
         raise HTTPException(status_code=my_error.code, detail=my_error.message)
@@ -78,8 +75,7 @@ def stock_movement(move: MovementApp):
 @app.get("/stock/{product_id}")
 def stock(product_id: int):
     try:
-        qty = Warehouse.product_qty(product_id=product_id)
-        return StockResponse(product_id=product_id, qty=qty)
+        return StockResponse(product_id=product_id, qty=wr_h1.product_qty(product_id=product_id))
 
     except MyError as my_error:
         raise HTTPException(status_code=my_error.code, detail=my_error.message)
