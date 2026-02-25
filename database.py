@@ -4,10 +4,10 @@ from typing import Optional, Annotated
 
 from sqlalchemy import create_engine, or_
 
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import Column, Integer, String, CheckConstraint, Float, DateTime, func, Enum, text, select, ForeignKey
+from sqlalchemy.orm import declarative_base, mapped_column
+from sqlalchemy import CheckConstraint, func, Enum, text, select, ForeignKey, case
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped
 from sqlalchemy.exc import IntegrityError
 from app.schemas.product_scheme import ProductApp, ProductUpdate
 from er import MyError
@@ -17,10 +17,7 @@ engine = create_engine('sqlite:///my.db', echo=True)
 
 Session = sessionmaker(bind=engine)
 
-
-class Base(DeclarativeBase):
-    pass
-
+Base = declarative_base()
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
 created_at = Annotated[datetime.datetime, mapped_column(server_default=func.now())]
@@ -45,14 +42,14 @@ class ProductBase(Base):
                 f"created_at={self.created_at!r})")
 
 
-class Warehouse(Base):
+class WarehouseBase(Base):
     __tablename__ = 'warehouse'
 
     id: Mapped[intpk]
     name: Mapped[str] = mapped_column(unique=True)
 
 
-class Movement(Base):
+class MovementBase(Base):
     __tablename__ = 'movement'
 
     id: Mapped[intpk]
@@ -63,9 +60,17 @@ class Movement(Base):
     comment: Mapped[Optional[str]]
     created_at: Mapped[created_at]
 
+    def __repr__(self) -> str:
+        return (f"User(id={self.id!r}, "
+                f"product_id={self.product_id!r}, "
+                f"type={self.type!r}, "
+                f"comment={self.comment!r}, "
+                f"qty={self.qty!r}, "
+                f"created_at={self.created_at!r})")
 
-Base.metadata.drop_all(engine)
-Base.metadata.create_all(engine)
+
+# Base.metadata.drop_all(engine)
+# Base.metadata.create_all(engine)
 
 
 # class ProductBase(Base):
@@ -104,7 +109,7 @@ def random_products():
             session.commit()
 
 
-random_products()
+# random_products()
 
 
 def get_product_by_id(pid: int):
@@ -184,40 +189,62 @@ def delete_product(pid: int):
 from app.schemas.stock_scheme import MovementApp
 
 
+def prim():
+    with Session() as session:
+        wer = WarehouseBase(name="Склад-1")
+        session.add(wer)
+        session.commit()
+
+
+# prim()
+
+
 def add_move(move: MovementApp):
     with Session() as session:
         if move.qty <= 0:
             raise MyError(code=422, message="Движение не может быть отрицательным или нулевым")
-        #
-        # qty_now = product_qty(move.product.pid)
-        qty_now = product_qty()
-        #
-        # if qty_now < move.qty and move.type == MoveType.OUT:
-        #     raise MyError(400, f"Недостаточно товара на складе. Количество {qty_now}")
-        #
-        # move.pid = len(self.movements) + 1
-        # self.movements.append(move)
+
+        qty_now = product_qty(move.product_id)
+
+        if qty_now < move.qty and move.type == MoveType.OUT:
+            raise MyError(400, f"Недостаточно товара на складе. Количество {qty_now}")
+
+        res = MovementBase(**move.model_dump())
+        session.add(res)
+        session.commit()
 
 
-def product_qty(product_id: int):
+def product_qty(product_id: int) -> int:
+    get_product_by_id(product_id)
+
     with Session() as session:
-        product = get_product_by_id(product_id)
+        stmt = select(
+            func.coalesce(
+                func.sum(
+                    case(
+                        (MovementBase.type == MoveType.IN, MovementBase.qty),
+                        (MovementBase.type == MoveType.OUT, -MovementBase.qty),
+                        else_=0
+                    )
+                ), 0
+            )
+        ).where(MovementBase.product_id == product_id)
 
-        # qty = 0
-        # for move in self.movements:
-        #     if move.product == product:
-        #         if move.type == MoveType.IN:
-        #             qty = qty + move.qty
-        #         else:
-        #             qty = qty - move.qty
-        #
-        # return qty
+        total_qty = session.execute(stmt).scalar()
+        return total_qty
 
 
+def stock_movements(warehouse_name: str):
+    with Session() as session:
+        res = select(MovementBase).filter(MovementBase.warehouse_name == warehouse_name)
+        result = session.scalars(res).all()
 
-print(add_move(move=MovementApp(
-    product_id=1,
-    type=MoveType.IN,
-    qty=10,
-    warehouse="Склад-1"
-)))
+        return result
+
+
+def stock_remains():
+    ...
+
+
+#print(stock_remains)
+
