@@ -11,10 +11,11 @@ class MoveType(Enum):
 
 # Схема для добавления движения
 class MovementApp(BaseModel):
-    product_id: int = 1
+    product_id: int
     type: MoveType
     qty: int = Field(0, ge=0)
     comment: Optional[str] = None
+    warehouse_id: int
 
 
 # Схема вывода текущий остаток товара
