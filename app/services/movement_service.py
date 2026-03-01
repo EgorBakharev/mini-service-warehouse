@@ -1,82 +1,88 @@
 from sqlalchemy import select, func, case
+from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
-from app.models import MovementModel
+from app.core.exceptions import MyError
+from app.models.movement_model import MovementModel
 from app.schemas.stock_scheme import MovementApp, MoveType
 from app.services.product_service import get_product_by_id
-
-from er import MyError
-
-
-def add_move(move: MovementApp):
-    with SessionLocal() as session:
-        if move.qty <= 0:
-            raise MyError(code=422, message="Движение не может быть отрицательным или нулевым")
-
-        qty_now = product_qty(move.product_id, move.warehouse_id)
-
-        print(f" {qty_now} {move.qty}")
-        if qty_now < move.qty and move.type == MoveType.OUT:
-            raise MyError(400, f"Недостаточно товара на складе. Количество {qty_now}")
-
-        res = MovementModel(**move.model_dump())
-        session.add(res)
-        session.commit()
+from app.services.warehouse_service import get_warehouse_by_id
 
 
-def product_qty(product_id: int, warehouse_id: int) -> int:
-    get_product_by_id(product_id)
+# Добавление движения
+def add_move(move: MovementApp, db: Session):
+    if move.qty <= 0:
+        raise MyError(code=422, message="Движение не может быть отрицательным или нулевым")
 
-    with SessionLocal() as session:
-        stmt = select(
-            func.sum(
-                case(
-                    (MovementModel.type == MoveType.IN, MovementModel.qty),
-                    (MovementModel.type == MoveType.OUT, -MovementModel.qty),
-                    else_=0
-                )
-            )
-        ).where(
-            MovementModel.product_id == product_id
-        ).group_by(
-            MovementModel.warehouse_id
-        ).having(
-            MovementModel.warehouse_id == warehouse_id
+    qty_now = product_qty(move.product_id, move.warehouse_id, db=db)
+
+    if qty_now < move.qty and move.type == MoveType.OUT:
+        raise MyError(400, f"Недостаточно товара на складе. Количество {qty_now}")
+
+    res = MovementModel(**move.model_dump())
+
+    db.add(res)
+    db.commit()
+    db.refresh(res)
+
+    return res
+
+
+# Считает остаток товара
+def product_qty(product_id: int, warehouse_id: int, db: Session) -> int:
+    get_product_by_id(product_id, db)
+    get_warehouse_by_id(warehouse_id, db)
+
+    qty_expression = func.sum(
+        case(
+            (MovementModel.type == "IN", MovementModel.qty),
+            (MovementModel.type == "OUT", -MovementModel.qty),
+            else_=0
         )
+    )
 
-        total_qty = session.scalar(stmt)
-        return total_qty if isinstance(total_qty, int) else 0
+    stmt = select(qty_expression).where(
+        MovementModel.product_id == product_id,
+        MovementModel.warehouse_id == warehouse_id
+    )
+
+    total_qty = db.execute(stmt).scalar()
+
+    return total_qty if total_qty else 0
 
 
-def stock_movements(warehouse_id: int):
-    with SessionLocal() as session:
-        res = select(MovementModel).filter(MovementModel.warehouse_id == warehouse_id)
-        result = session.scalars(res).all()
+# Движения по складу
+def movements_warehouse(warehouse_id: int, db: Session):
+    get_warehouse_by_id(warehouse_id, db)
 
-        return result
+    stmt = select(MovementModel).filter(MovementModel.warehouse_id == warehouse_id)
+    result = db.scalars(stmt).all()
+
+    return result
 
 
-def stock_remains(warehouse_id: int):
-    with SessionLocal() as session:
-        qty_expression = func.sum(
-            case(
-                (MovementModel.type == MoveType.IN, MovementModel.qty),
-                (MovementModel.type == MoveType.OUT, -MovementModel.qty),
-                else_=0
-            )
+# Остаток товаров для склада
+def remains_warehouse(warehouse_id: int, db: Session):
+    get_warehouse_by_id(warehouse_id, db)
+
+    qty_expression = func.sum(
+        case(
+            (MovementModel.type == "IN", MovementModel.qty),
+            (MovementModel.type == "OUT", -MovementModel.qty),
+            else_=0
         )
+    )
 
-        stmt = select(
-            MovementModel.product_id,
-            qty_expression
-        ).where(
-            MovementModel.warehouse_id == warehouse_id
-        ).group_by(
-            MovementModel.product_id
-        ).having(
-            qty_expression > 0
-        )
+    stmt = select(
+        MovementModel.product_id,
+        qty_expression
+    ).where(
+        MovementModel.warehouse_id == warehouse_id
+    ).group_by(
+        MovementModel.product_id
+    ).having(
+        qty_expression > 0
+    )
 
-        results = session.execute(stmt).all()
+    results = db.execute(stmt).all()
 
-        return results
+    return results

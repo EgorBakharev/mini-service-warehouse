@@ -1,82 +1,85 @@
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
+from app.core.exceptions import MyError
 from app.models import ProductModel
-
-from app.schemas.product_scheme import ProductApp, ProductUpdate
-
-from er import MyError
+from app.schemas.product_scheme import ProductApp, ProductUpdate, ProductResponse
 
 
-def get_product_by_id(pid: int):
-    with SessionLocal() as session:
-        result = session.get(ProductModel, pid)
+# Получить продукт
+def get_product_by_id(pid: int, db: Session):
+    result = db.get(ProductModel, pid)
 
-        if result is None:
-            raise MyError(code=404, message='Товара нет')
+    if result is None:
+        raise MyError(code=404, message='Товара нет')
 
-        return result
+    return result
 
 
-def get_products(limit: int = 20, offset: int = 0, search: str = None):
-    with SessionLocal() as session:
-        stmt = select(ProductModel)
-        if search:
-            stmt = stmt.where(
-                or_(
-                    ProductModel.sku.ilike(f"%{search}%"),
-                    ProductModel.name.ilike(f"%{search}%")  # ileke соусоу
-                )
+# Получить продукты
+def get_products(db: Session, limit: int = 20, offset: int = 0, search: str = None):
+    stmt = select(ProductModel)
+
+    if search:
+        stmt = stmt.where(
+            or_(
+                ProductModel.sku.ilike(f"%{search}%"),
+                ProductModel.name.ilike(f"%{search}%")
             )
-
-        stmt = stmt.offset(offset).limit(limit)
-
-        return session.execute(stmt).scalars().all()
-
-
-def add_product(app: ProductApp):
-    with SessionLocal() as session:
-        session_product = ProductModel(
-            sku=app.sku,
-            name=app.name,
-            description=app.description,
-            price=app.price
         )
+    stmt = stmt.offset(offset).limit(limit)
 
-        session.add(session_product)
-        try:
-            session.commit()
-
-        except IntegrityError:
-            session.rollback()  # нужен ли для всех исключений
-            raise MyError(code=400, message=f"{app.sku} уже существует")
-
-        return session_product
+    return db.execute(stmt).scalars().all()
 
 
-def update_product(pid: int, prod_up: ProductUpdate):
-    with SessionLocal() as session:
-        if isinstance(prod_up.price, (int, float)) and prod_up.price < 0:
-            raise MyError(code=400, message='Цена меньше 0.0')
+# Добавить продукт
+def add_product(app: ProductApp, db: Session):
+    if app.price < 0:
+        raise MyError(code=400, message=f"Цена продукта должна быть не меньше 0.")
 
-        existing_product = get_product_by_id(pid)
-        update_data = prod_up.model_dump(exclude_unset=True)
+    db_product = ProductModel(
+        sku=app.sku,
+        name=app.name,
+        description=app.description,
+        price=app.price
+    )
 
-        for field, value in update_data.items():
-            setattr(existing_product, field, value)
+    db.add(db_product)
 
-        session.commit()
+    try:
+        db.commit()
+        db.refresh(db_product)
+        return db_product
 
-        return existing_product
+    except IntegrityError:
+        db.rollback()
+        raise MyError(code=400, message=f"{app.sku} уже существует")
 
 
-def delete_product(pid: int):
-    with SessionLocal() as session:
-        session_product = get_product_by_id(pid)
+# Частично изменить продукт
+def update_product(pid: int, prod_up: ProductUpdate, db: Session):
+    if isinstance(prod_up.price, (int, float)) and prod_up.price < 0:
+        raise MyError(code=400, message='Цена меньше 0.0')
 
-        if session_product:
-            session.delete(session_product)
-            session.commit()
+    existing_product = get_product_by_id(pid, db=db)
+    update_data = prod_up.model_dump(exclude_unset=True)
 
-        return session_product
+    for field, value in update_data.items():
+        setattr(existing_product, field, value)
+
+    db.commit()
+    db.refresh(existing_product)
+
+    return existing_product
+
+
+# Удалить продукт (настоящее удаление)
+def delete_product(pid: int, db: Session):
+    session_product = get_product_by_id(pid, db=db)
+
+    if session_product:
+        db.delete(session_product)
+        db.commit()
+
+    return session_product
