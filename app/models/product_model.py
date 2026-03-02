@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sqlalchemy import CheckConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.base import intpk, created_at
@@ -17,3 +17,5 @@ class ProductModel(Base):
     description: Mapped[Optional[str]]
     price: Mapped[float] = mapped_column(CheckConstraint('price >= 0'))
     created_at: Mapped[created_at]
+
+    movements = relationship("MovementModel", back_populates="product", cascade="all, delete-orphan")

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sqlalchemy import ForeignKey, CheckConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.base import intpk, created_at
@@ -20,3 +20,5 @@ class MovementModel(Base):
     comment: Mapped[Optional[str]]
     created_at: Mapped[created_at]
 
+    product = relationship("ProductModel", back_populates="movements")
+    warehouse = relationship("WarehouseModel", back_populates="movements")

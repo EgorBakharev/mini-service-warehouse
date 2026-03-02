@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.base import intpk
@@ -10,3 +10,5 @@ class WarehouseModel(Base):
 
     id: Mapped[intpk]
     name: Mapped[str] = mapped_column(unique=True)
+
+    movements = relationship("MovementModel", back_populates="warehouse", cascade="all, delete-orphan")

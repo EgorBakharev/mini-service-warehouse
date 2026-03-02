@@ -8,8 +8,25 @@ from app.services.product_service import get_product_by_id
 from app.services.warehouse_service import get_warehouse_by_id
 
 
-# Добавление движения
 def add_move(move: MovementApp, db: Session):
+    """
+        Добавить движение.
+
+        Проверяет наличие достаточного количества товара на складе
+        при операции расхода (OUT).
+
+        Args:
+            move (MovementApp): Схема данных для создания движения.
+            db (Session): Сессия.
+
+        Returns:
+            MovementModel: Созданный объект модели движения (с ID и created_at).
+
+        Raises:
+            MyError: Код 422, если количество товара <= 0.
+            MyError: Код 400, если недостаточно товара на складе при расходе.
+    """
+
     if move.qty <= 0:
         raise MyError(code=422, message="Движение не может быть отрицательным или нулевым")
 
@@ -27,8 +44,25 @@ def add_move(move: MovementApp, db: Session):
     return res
 
 
-# Считает остаток товара
 def product_qty(product_id: int, warehouse_id: int, db: Session) -> int:
+    """
+         Рассчитать текущий остаток товара на складе.
+
+         Вычисляет разницу между всеми приходами (IN) и расходами (OUT)
+         для указанного продукта на указанном складе.
+
+         Args:
+             product_id (int): Уникальный ID продукта.
+             warehouse_id (int): Уникальный ID склада.
+             db (Session): Сессия.
+
+         Returns:
+             int: Текущее количество товара на складе.
+
+         Raises:
+             MyError: Код 404, если продукт или склад не найдены.
+     """
+
     get_product_by_id(product_id, db)
     get_warehouse_by_id(warehouse_id, db)
 
@@ -50,8 +84,21 @@ def product_qty(product_id: int, warehouse_id: int, db: Session) -> int:
     return total_qty if total_qty else 0
 
 
-# Движения по складу
 def movements_warehouse(warehouse_id: int, db: Session):
+    """
+        Получить все движения для указанного склада.
+
+        Args:
+            warehouse_id (int): Уникальный ID склада.
+            db (Session): Cессия.
+
+        Returns:
+            List[MovementModel]: Список объектов моделей движения.
+
+        Raises:
+            MyError: Код 404, если склад не найден.
+    """
+
     get_warehouse_by_id(warehouse_id, db)
 
     stmt = select(MovementModel).filter(MovementModel.warehouse_id == warehouse_id)
@@ -60,8 +107,24 @@ def movements_warehouse(warehouse_id: int, db: Session):
     return result
 
 
-# Остаток товаров для склада
 def remains_warehouse(warehouse_id: int, db: Session):
+    """
+        Получить текущие остатки всех товаров на указанном складе.
+
+        Возвращает только товары с положительным остатком (qty > 0).
+
+        Args:
+            warehouse_id (int): Уникальный ID склада.
+            db (Session): Сессия.
+
+        Returns:
+            List[Dict[str, Any]]: Список словарей с product_id и qty.
+                                  Пример: [{"product_id": 1, "qty": 50}, ...]
+
+        Raises:
+            MyError: Код 404, если склад не найден.
+    """
+
     get_warehouse_by_id(warehouse_id, db)
 
     qty_expression = func.sum(
@@ -85,4 +148,7 @@ def remains_warehouse(warehouse_id: int, db: Session):
 
     results = db.execute(stmt).all()
 
-    return results
+    return [
+        {"product_id": row[0], "qty": row[1]}
+        for row in results
+    ]

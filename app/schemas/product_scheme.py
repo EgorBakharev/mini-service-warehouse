@@ -26,5 +26,3 @@ class ProductResponse(BaseModel):
     description: Optional[str]
     price: float
     created_at: datetime
-
-

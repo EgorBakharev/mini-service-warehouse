@@ -6,8 +6,23 @@ from app.core.exceptions import MyError
 from app.models import WarehouseModel
 
 
-# Добавить склад
 def add_warehouse(warehouse_name: str, db: Session):
+    """
+        Добавить новый склад в БД.
+
+        Проверяет уникальность названия склада.
+
+        Args:
+            warehouse_name (str): Название нового склада.
+            db (Session): Сессия.
+
+        Returns:
+            WarehouseModel: Созданный объект модели склада (с ID).
+
+        Raises:
+            MyError: Код 400, если склад с таким названием уже существует.
+    """
+
     warehouse = WarehouseModel(name=warehouse_name)
     db.add(warehouse)
 
@@ -21,8 +36,21 @@ def add_warehouse(warehouse_name: str, db: Session):
         raise MyError(code=400, message=f"Склад: '{warehouse_name}' уже существует")
 
 
-# Получить склад
 def get_warehouse_by_id(wid: int, db: Session):
+    """
+        Получить склад по ID.
+
+        Args:
+            wid (int): Уникальный ID.
+            db (Session): Сессия.
+
+        Returns:
+            WarehouseModel: Объект модели склада.
+
+        Raises:
+            MyError: Код 404, если склад с указанным ID не найден.
+    """
+
     result = db.get(WarehouseModel, wid)
 
     if result is None:
@@ -31,6 +59,39 @@ def get_warehouse_by_id(wid: int, db: Session):
     return result
 
 
-# Получить список складов
 def get_warehouses(db: Session):
+    """
+         Получить список всех складов.
+
+         Args:
+             db (Session): Сессия.
+
+         Returns:
+             List[WarehouseModel]: Список объектов моделей складов.
+     """
+
     return db.execute(select(WarehouseModel)).scalars().all()
+
+
+def delete_warehouse(wid: int, db: Session):
+    """
+        Удалить склад из базы данных (постоянное удаление).
+
+        Args:
+            wid (int): Уникальный ID.
+            db (Session): Сессия.
+
+        Returns:
+            ProductModel: Удалённый объект модели склада.
+
+        Raises:
+            MyError: Код 404, если склада не найден.
+    """
+
+    session_warehouse = get_warehouse_by_id(wid, db=db)
+
+    if session_warehouse:
+        db.delete(session_warehouse)
+        db.commit()
+
+    return session_warehouse

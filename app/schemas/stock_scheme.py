@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Optional
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -26,4 +27,10 @@ class StockResponse(BaseModel):
 
 # Схема полного вывода
 class MovementResponse(BaseModel):
-    ...
+    id: int
+    product_id: int
+    warehouse_id: int
+    type: MoveType
+    qty: int
+    comment: Optional[str]
+    created_at: datetime
