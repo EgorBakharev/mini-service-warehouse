@@ -47,7 +47,7 @@ def stock_movement(move: MovementApp, db: Session = Depends(get_db)):
 
 @router.get("/{product_id}", response_model=StockResponse)
 def stock_product(product_id: int, db: Session = Depends(get_db), warehouse_id: int = 1):
-    """ # Эндпоинт, получить текущий остаток товара на складе """
+    """ Эндпоинт, получить текущий остаток товара на складе """
 
     try:
         qty = product_qty(product_id=product_id, warehouse_id=warehouse_id, db=db)

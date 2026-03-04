@@ -1,9 +1,11 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from fastapi.testclient import TestClient
 
-
+from app.main import app
 from app.db.base import Base
+from app.db.session import get_db
 from app.models import ProductModel, WarehouseModel, MovementModel
 from app.schemas.stock_scheme import MoveType
 
@@ -31,6 +33,24 @@ def db_session():
 
 
 @pytest.fixture
+def client(db_session):
+    """
+        Фикстура для создания тестового клиента FastAPI.
+        Переопределяет зависимость get_db для использования тестовой БД.
+    """
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
 def test_warehouse(db_session):
     """Фикстура для создания тестового склада"""
 
@@ -38,6 +58,7 @@ def test_warehouse(db_session):
     db_session.add(warehouse)
     db_session.commit()
     db_session.refresh(warehouse)
+
     return warehouse
 
 
@@ -54,6 +75,7 @@ def test_product(db_session):
     db_session.add(product)
     db_session.commit()
     db_session.refresh(product)
+
     return product
 
 
@@ -71,4 +93,5 @@ def test_movement(db_session, test_product, test_warehouse):
     db_session.add(movement)
     db_session.commit()
     db_session.refresh(movement)
+
     return movement
