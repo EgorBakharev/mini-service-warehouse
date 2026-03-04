@@ -4,16 +4,15 @@ from app.db.session import engine
 
 from app.models import ProductModel, WarehouseModel, MovementModel
 
-from app.routes import products_router, warehouse_router, movement_router
-
+from app.routes import products_router, warehouses_router, movements_router
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="My Service")
 
 app.include_router(products_router)
-app.include_router(warehouse_router)
-app.include_router(movement_router)
+app.include_router(warehouses_router)
+app.include_router(movements_router)
 
 
 @app.get("/")

@@ -1,5 +1,4 @@
 import pytest
-from pydantic import ValidationError
 
 from app.core.exceptions import MyError
 from app.models.movement_model import MovementModel
@@ -38,7 +37,18 @@ class TestMovementService:
     def test_add_move_zero_qty(self, db_session, test_product, test_warehouse):
         """Тест добавления движения с нулевым количеством"""
 
-        ...
+        move_app = MovementApp(
+            product_id=test_product.id,
+            warehouse_id=test_warehouse.id,
+            type=MoveType.IN,
+            qty=0
+        )
+
+        with pytest.raises(MyError) as my_error:
+            add_move(move_app, db_session)
+
+        assert my_error.value.code == 422
+        assert "Движение не может быть" in my_error.value.message
 
     def test_add_move_out_insufficient_qty(self, db_session, test_product, test_warehouse):
         """Тест расхода при недостаточном количестве"""

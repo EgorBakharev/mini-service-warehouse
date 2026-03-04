@@ -1,8 +1,7 @@
 import pytest
-from pydantic import ValidationError
 
 from app.core.exceptions import MyError
-from app.models.product_model import ProductModel
+from app.models import ProductModel
 from app.schemas.product_scheme import ProductApp, ProductUpdate
 from app.services.product_service import add_product, get_product_by_id, get_products, update_product, delete_product
 
@@ -28,18 +27,28 @@ class TestProductService:
         assert product.price == 100.0
         assert product.created_at is not None
 
-        db_producr = db_session.get(ProductModel, product.id)
+        db_product = db_session.get(ProductModel, product.id)
 
-        assert db_producr.id is not None
-        assert db_producr.sku == "sku-001"
-        assert db_producr.name == "Apple"
-        assert db_producr.price == 100.0
-        assert db_producr.created_at is not None
+        assert db_product.id is not None
+        assert db_product.sku == "sku-001"
+        assert db_product.name == "Apple"
+        assert db_product.price == 100.0
+        assert db_product.created_at is not None
 
     def test_add_product_negative_price(self, db_session):
         """Тест добавления продукта с отрицательной ценой"""
 
-        ...
+        product_app = ProductApp(
+            sku="test_product.sku",
+            name="Tea",
+            price=-100.0
+        )
+
+        with pytest.raises(MyError) as my_error:
+            add_product(product_app, db_session)
+
+        assert my_error.value.code == 400
+        assert "Цена продукта" in my_error.value.message
 
     def test_add_product_duplicate_sku(self, db_session, test_product):
         """Тест добавления продукта с дублирующимся SKU"""
@@ -74,7 +83,7 @@ class TestProductService:
         assert "Товара нет" in my_error.value.message
 
     def test_update_product_name(self, db_session, test_product):
-        """Тест успешного обновления продукта"""
+        """Тест успешного обновления продукта (имя)"""
 
         update_data = ProductUpdate(name="Milk")
 
@@ -83,7 +92,7 @@ class TestProductService:
         assert updated_product.name == "Milk"
 
     def test_update_product_price(self, db_session, test_product):
-        """Тест успешного обновления продукта"""
+        """Тест успешного обновления продукта (цена)"""
 
         update_data = ProductUpdate(price=150.0)
 
@@ -92,7 +101,7 @@ class TestProductService:
         assert updated_product.price == 150.0
 
     def test_update_product_description(self, db_session, test_product):
-        """Тест успешного обновления продукта"""
+        """Тест успешного обновления продукта (описание)"""
 
         update_data = ProductUpdate(description="Вкусно")
 

@@ -1,3 +1,4 @@
+from typing import Optional, Type, Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -6,7 +7,7 @@ from app.core.exceptions import MyError
 from app.models import WarehouseModel
 
 
-def add_warehouse(warehouse_name: str, db: Session):
+def add_warehouse(warehouse_name: str, db: Session) -> WarehouseModel:
     """
         Добавить новый склад в БД.
 
@@ -36,16 +37,16 @@ def add_warehouse(warehouse_name: str, db: Session):
         raise MyError(code=400, message=f"Склад: '{warehouse_name}' уже существует")
 
 
-def get_warehouse_by_id(wid: int, db: Session):
+def get_warehouse_by_id(wid: int, db: Session) -> Optional[Type[WarehouseModel]]:
     """
         Получить склад по ID.
 
         Args:
-            wid (int): Уникальный ID.
+            wid (int): Уникальный ID склада.
             db (Session): Сессия.
 
         Returns:
-            WarehouseModel: Объект модели склада.
+            Optional[Type[WarehouseModel]]: Объект модели склада или None.
 
         Raises:
             MyError: Код 404, если склад с указанным ID не найден.
@@ -59,7 +60,7 @@ def get_warehouse_by_id(wid: int, db: Session):
     return result
 
 
-def get_warehouses(db: Session):
+def get_warehouses(db: Session) -> Sequence[WarehouseModel]:
     """
          Получить список всех складов.
 
@@ -67,22 +68,22 @@ def get_warehouses(db: Session):
              db (Session): Сессия.
 
          Returns:
-             List[WarehouseModel]: Список объектов моделей складов.
+             Sequence[WarehouseModel]: Список объектов моделей складов.
      """
 
     return db.execute(select(WarehouseModel)).scalars().all()
 
 
-def delete_warehouse(wid: int, db: Session):
+def delete_warehouse(wid: int, db: Session) -> Optional[Type[WarehouseModel]]:
     """
         Удалить склад из базы данных (постоянное удаление).
 
         Args:
-            wid (int): Уникальный ID.
+            wid (int): Уникальный ID склада.
             db (Session): Сессия.
 
         Returns:
-            ProductModel: Удалённый объект модели склада.
+            Optional[Type[WarehouseModel]]: Удалённый объект модели склада или None.
 
         Raises:
             MyError: Код 404, если склада не найден.

@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.exceptions import MyError
-from app.models.warehouse_model import WarehouseModel
+from app.models import WarehouseModel
 from app.services.warehouse_service import add_warehouse, get_warehouse_by_id, get_warehouses, delete_warehouse
 
 

@@ -1,14 +1,16 @@
+from typing import Sequence, List, Dict, Any
+
 from sqlalchemy import select, func, case
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import MyError
-from app.models.movement_model import MovementModel
+from app.models import MovementModel
 from app.schemas.stock_scheme import MovementApp, MoveType
 from app.services.product_service import get_product_by_id
 from app.services.warehouse_service import get_warehouse_by_id
 
 
-def add_move(move: MovementApp, db: Session):
+def add_move(move: MovementApp, db: Session) -> MovementModel:
     """
         Добавить движение.
 
@@ -84,7 +86,7 @@ def product_qty(product_id: int, warehouse_id: int, db: Session) -> int:
     return total_qty if total_qty else 0
 
 
-def movements_warehouse(warehouse_id: int, db: Session):
+def movements_warehouse(warehouse_id: int, db: Session) -> Sequence[MovementModel]:
     """
         Получить все движения для указанного склада.
 
@@ -93,7 +95,7 @@ def movements_warehouse(warehouse_id: int, db: Session):
             db (Session): Cессия.
 
         Returns:
-            List[MovementModel]: Список объектов моделей движения.
+            Sequence[MovementModel]: Список объектов моделей движения.
 
         Raises:
             MyError: Код 404, если склад не найден.
@@ -107,7 +109,7 @@ def movements_warehouse(warehouse_id: int, db: Session):
     return result
 
 
-def remains_warehouse(warehouse_id: int, db: Session):
+def remains_warehouse(warehouse_id: int, db: Session) -> List[Dict[str, Any]]:
     """
         Получить текущие остатки всех товаров на указанном складе.
 

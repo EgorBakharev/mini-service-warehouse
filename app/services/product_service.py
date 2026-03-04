@@ -1,3 +1,5 @@
+from typing import Optional, Type, Sequence
+
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -7,16 +9,16 @@ from app.models import ProductModel
 from app.schemas.product_scheme import ProductApp, ProductUpdate
 
 
-def get_product_by_id(pid: int, db: Session):
+def get_product_by_id(pid: int, db: Session) -> Optional[Type[ProductModel]]:
     """
         Получить продукт по ID.
 
         Args:
-            pid (int): Уникальный ID.
+            pid (int): Уникальный ID продукта.
             db (Session): Cессия.
 
         Returns:
-            ProductModel: Объект модели продукта.
+            Optional[Type[ProductModel]]: Объект модели продукта или None.
 
         Raises:
             MyError: Код 404, если продукт с указанным ID не найден.
@@ -30,7 +32,7 @@ def get_product_by_id(pid: int, db: Session):
     return result
 
 
-def get_products(db: Session, limit: int = 20, offset: int = 0, search: str = None):
+def get_products(db: Session, limit: int = 20, offset: int = 0, search: str = None) -> Sequence[ProductModel]:
     """
         Получить список продуктов.
 
@@ -43,7 +45,7 @@ def get_products(db: Session, limit: int = 20, offset: int = 0, search: str = No
             search (Optional[str]): Поисковый запрос по артикулу или названию.
 
         Returns:
-            List[ProductModel]: Список объектов моделей продуктов.
+            Sequence[ProductModel]: Список объектов моделей продуктов.
     """
 
     stmt = select(ProductModel)
@@ -57,12 +59,13 @@ def get_products(db: Session, limit: int = 20, offset: int = 0, search: str = No
         )
     stmt = stmt.offset(offset).limit(limit)
 
-    return db.execute(stmt).scalars().all()
+    result = db.execute(stmt).scalars().all()
+    return result
 
 
-def add_product(app: ProductApp, db: Session):
+def add_product(app: ProductApp, db: Session) -> ProductModel:
     """
-        Добавить новый продукт в бд.
+        Добавить новый продукт в базу.
 
         Проверяет корректность цены и уникальность артикула (SKU).
 
@@ -99,19 +102,19 @@ def add_product(app: ProductApp, db: Session):
         raise MyError(code=400, message=f"{app.sku} уже существует")
 
 
-def update_product(pid: int, prod_up: ProductUpdate, db: Session):
+def update_product(pid: int, prod_up: ProductUpdate, db: Session) -> Optional[Type[ProductModel]]:
     """
         Частично обновить данные существующего продукта.
 
         Обновляются только те поля, которые были переданы в схеме обновления.
 
         Args:
-            pid (int): Уникальный ID.
+            pid (int): Уникальный ID продукта.
             prod_up (ProductUpdate): Схема данных с новыми значениями полей.
             db (Session): Сессия.
 
         Returns:
-            ProductModel: Обновлённый объект модели продукта.
+             Optional[Type[ProductModel]]: Обновлённый объект модели продукта.
 
         Raises:
             MyError: Код 400, если цена меньше 0.
@@ -133,16 +136,16 @@ def update_product(pid: int, prod_up: ProductUpdate, db: Session):
     return existing_product
 
 
-def delete_product(pid: int, db: Session):
+def delete_product(pid: int, db: Session) -> Optional[Type[ProductModel]]:
     """
         Удалить продукт из базы данных (постоянное удаление).
 
         Args:
-            pid (int): Уникальный ID.
+            pid (int): Уникальный ID продукта.
             db (Session): Сессия.
 
         Returns:
-            ProductModel: Удалённый объект модели продукта.
+            Optional[Type[ProductModel]]: Удалённый объект модели продукта или None.
 
         Raises:
             MyError: Код 404, если продукт не найден.

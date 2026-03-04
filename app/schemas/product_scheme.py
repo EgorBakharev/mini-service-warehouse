@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 # Схема заполнения создание товара
@@ -8,7 +8,7 @@ class ProductApp(BaseModel):
     sku: str
     name: str
     description: Optional[str] = None
-    price: float = Field(ge=0.0)
+    price: float = 0.0
 
 
 # Схема для частичного обновления (все поля необязательные)

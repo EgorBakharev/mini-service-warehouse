@@ -4,14 +4,12 @@ from sqlalchemy.orm import sessionmaker
 
 
 from app.db.base import Base
-from app.models.product_model import ProductModel
-from app.models.warehouse_model import WarehouseModel
-from app.models.movement_model import MovementModel
+from app.models import ProductModel, WarehouseModel, MovementModel
 from app.schemas.stock_scheme import MoveType
 
 engine = create_engine("sqlite:///./test.db")
 
-TestingSessionLocal = sessionmaker(engine)
+TestingSessionLocal = sessionmaker(bind=engine)
 
 
 @pytest.fixture

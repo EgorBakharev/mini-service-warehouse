@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 # Ограничение ввода
@@ -15,7 +15,7 @@ class MovementApp(BaseModel):
     product_id: int
     warehouse_id: int
     type: MoveType
-    qty: int = Field(ge=1)
+    qty: int = 0
     comment: Optional[str] = None
 
 
