@@ -5,6 +5,7 @@
 - [Виртуальное окружение](#виртуальное-окружение)
 - [Зависимость](#зависимость-)
 - [Cервиса](#cервис)
+- [Документация](#документация)
 - [Тесты](#тесты)
 
 ## Виртуальное окружение
@@ -31,21 +32,25 @@ pip install -r requirements.txt
 ## Cервис
 Запускаем
 ```sh
-uvicorn app.main:app
+python -m uvicorn app.main:app
 ```
+http://127.0.0.1:8000
+
+## Документация
+http://127.0.0.1:8000/docs
 
 ## Тесты
-Всех тестов
+Запуск всех тестов
 ```sh
-pytest
+python -m pytest
 ```
 
 Unit-тесты
 ```ch
-pytest .\tests\unit_test
+python -m pytest .\tests\unit_test
 ```
 
 Integration-тесты
 ```sh
-pytest .\tests\integration_test
+python -m pytest .\tests\integration_test
 ```
