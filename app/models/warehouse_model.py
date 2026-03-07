@@ -11,4 +11,4 @@ class WarehouseModel(Base):
     id: Mapped[intpk]
     name: Mapped[str] = mapped_column(unique=True)
 
-    movements = relationship("MovementModel", back_populates="warehouse", cascade="all, delete-orphan")
+    movements = relationship("MovementModel", back_populates="warehouse")
