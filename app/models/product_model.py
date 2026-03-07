@@ -18,4 +18,4 @@ class ProductModel(Base):
     price: Mapped[float] = mapped_column(CheckConstraint('price >= 0'))
     created_at: Mapped[created_at]
 
-    movements = relationship("MovementModel", back_populates="product", cascade="all, delete-orphan")
+    movements = relationship("MovementModel", back_populates="product")
