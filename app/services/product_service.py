@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import MyError
-from app.models import ProductModel
+from app.models import ProductModel, MovementModel
 from app.schemas.product_scheme import ProductApp, ProductUpdate
 
 
@@ -149,7 +149,16 @@ def delete_product(pid: int, db: Session) -> Optional[Type[ProductModel]]:
 
         Raises:
             MyError: Код 404, если продукт не найден.
+            MyError: Код 400, если существует связь в движение.
     """
+    stmt = select(MovementModel).filter(MovementModel.product_id == pid)
+
+    has_movements = db.execute(stmt).first()
+    if has_movements:
+        raise MyError(
+            code=400,
+            message="Невозможно удалить продукт: существуют связанные движения"
+        )
 
     session_product = get_product_by_id(pid, db=db)
 

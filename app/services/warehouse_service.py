@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import MyError
-from app.models import WarehouseModel
+from app.models import WarehouseModel, MovementModel
 
 
 def add_warehouse(warehouse_name: str, db: Session) -> WarehouseModel:
@@ -87,7 +87,16 @@ def delete_warehouse(wid: int, db: Session) -> Optional[Type[WarehouseModel]]:
 
         Raises:
             MyError: Код 404, если склада не найден.
+            MyError: Код 400, если существует связь в движение.
     """
+    stmt = select(MovementModel).filter(MovementModel.warehouse_id == wid)
+
+    has_movements = db.execute(stmt).first()
+    if has_movements:
+        raise MyError(
+            code=400,
+            message="Невозможно удалить склад: существуют связанные движения"
+        )
 
     session_warehouse = get_warehouse_by_id(wid, db=db)
 
